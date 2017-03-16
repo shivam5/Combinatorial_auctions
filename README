@@ -1,0 +1,182 @@
+
+Project Details
+================
+This project solves combinatorial auctions (specifically coal block auctions in this case), by using local search algorithms.
+
+Author
+==============
+Shivam Mittal
+2nd year B.Tech Computer Science Engineering, IIT Ropar
+Email - 2015csb1032@iitrpr.ac.in
+GIthub profile - github.com/shivam5
+
+
+COMPILING AND RUNNING PROGRAM
+===============================
+1. Open cmd, go to the respective directory in cmd
+2. Type g++ main.cpp -o mysolution
+3. ./mysolution <inputfile> <outputfile>
+
+
+IMPLEMENTATION
+=================
+All the tasks are implemented in C++ language.
+"inputs" directory contains sample input files.
+
+
+Problem statement
+==================
+
+Input Format:
+--------------
+The code reads inputs from a text file that will be provided as command argument.
+The input format is as follows
+T
+N
+B
+C
+cid ncid
+cid nbid bid-value block-id block id ... block id
+cid nbid bid-value block-id block-id ... block-id
+T refers to the wallclock time in minutes that will be given to your software to find a solution. N is
+the number of coal blocks; C is the number of companies; B is the number of bids. The bids of a
+single company are grouped together. The first line is the company id (cid) and the total number
+of bids made this company (ncid). Each line thereafter corresponds to a bid. Each bid starts with
+the company id, the number of coal blocks bid by the company in this bid (nbid), the bid-value,
+and the coal block ids. The bids are implicitly numbered. This is repeated for every company. For
+example,
+3
+7
+2
+6
+0 3
+0 4 400 0 2 3 6
+0 3 100 0 2 3
+0 3 50 2 3 4
+1 3
+1 3 300 1 4 5
+1 2 200 1 5
+1 3 40 1 3 4
+
+Output Format:
+---------------
+The output of your code (the winning bids) should be written to a text file that will also be provide
+as a command argument in the following format:
+2	
+	revenue bid-id bid-id ... bid-id
+For the example problem, this would be
+700 0 3
+
+
+How did I solve combinatorial auctions
+========================================
+
+1.1 Formulating the problem
+-------------------------------
+The problem details are stored in an object prob (Type : struct problem) which has global scope. The text
+file is preprocessed (in function preprocess), and the problem details are stored in the object prob. The
+details that are stored in prob are:
+
+1. wallclocktime- Refers to the wallclock time in minutes that will be given to your software to find a
+solution
+
+2. noofcoalblocks- Refers to the number of coal blocks
+
+3. noofbids- Refers to the number of bids
+
+4. noofcompanies- Refers to the number of companies
+
+5. startingindexofcompany- Refers to the first company index. This check was needed because in the
+problem state, the starting index of company was 0, while in the text files given it was 1. So both kind
+of files will run in our software.
+
+6. vector < int > *bids- This stores the details of all the bids. Each bids details is stored in one vector.
+The details of the ith bid is accessed by bids[i] which contains:
+cid nbid bid-value block-id block id ... block id
+where:
+• cid is the company id accessed by bids[i][0] ,
+• the number of coal blocks bid by the company in this
+• bid (nbid) accessed by bids[i][1] ,
+• the bid-value (bid-value) accessed by bids[i][2] ,
+• the coal block ids accessed by bids[i][3 to bids[i].size()]
+
+1.2 Defining the state
+-------------------------
+The state is defined as a collection of three arrays:
+1. coalblocks- This array contains the details of allocation of all the coal blocks in the given state. It is
+of the size as the number of coal blocks given in the problem. It works as a hash map, if coalblocks[i]
+= 0, it means that ith coal block is not allocated in any of the bids in the given state, if coalblocks[i]
+!= 0, it means that ith coal block is allocated.
+
+2. companies- This array contains the details if any bid of the respective company is taken of all the
+companies in the given state. It is of the size as the number of companies given in the problem. It
+works as a hash map, if companies[i] = 0, it means that ith company bid is not taken in the given state,
+if comoany[i] != 0, it means that that companys bid is taken.
+
+3. bids- This array contains the details of all the bids in the given state. It is of the size as the number
+of bids given in the problem. It works as a hash map, if bids[i] = -1, it means that ith bid is not taken
+in the given state, if bids[i] != 0, it means that that companys bid is taken and also bids[i] gives the
+value of that bid.
+
+For the whole problem we have made two global states current and neighbour. Maxstate is a local state
+within the hillclimb algorithm,
+
+1.3 Initial State
+-------------------
+The initial state is defined in current. The arrays coalblocks, companies are made all 0 and the aray bids is
+made -1 as explained in state definiton.
+
+1.4 Choosing successors of a state
+--------------------------------------
+The function successors generate a successor of the state given as parameter. The successor is generated in
+the global variable neighbour.
+void successor (struct state X, int randombid=-1, int valtype=0);
+Here, struct state X is the state whose successor (neighbour) needs to be generated. Randombid and valtype
+are parameters to tune the type of successor we are choosing.
+Valtype is by default 0, but if it is not 0 - then the neighbour is generated based on greedy approach.
+The bid which does not conflict with the current state and has the highest bidvalue (generates maximum
+revenue) is selected and the successor is the state X combined with this highest revenue bid.
+successor (current, -1, -1) would call this.
+Randombif is by default -1, but if it is not -1 (and given valtype is 0) then the neighbour is gener-
+ated based on greedy approach. But the difference is that, the bid which has highest ( no of coal bidvalue)
+blocks in the bid is selected which doesnt conflict with the current state. The successor is the state X combined with this
+highest revenue bid. successor(current) would call this.
+2. If valtype is default 0 and randombid r is given a number (except -1), then the rth bid would be se-
+lected. It would be checked for conflict with the given state X. If there is no conflict, then the successor is
+the state X combined with this rth bid.
+If there is a conflict, then the successor is just the state X.
+
+1.5 Local Search algorithm for searching (and novel elements explained)
+--------------------------------------------------------------------------
+Essentially we have done stochastic hill climbing with random restarts.
+We have defined a walk probability wp (kept it 0.3 after tuning it after many trial runs). We have generated
+a array random array1 which contains distinct number between 0 to (no of coal blocks 1) and randomized
+them. The first random bid for successor in each hill climb is taken from this random array1 successively.
+This ensures random restart hill climbing with uniform at random states.
+In one stochastic hill climb:
+
+1. Take maxvalue as INT MIN.
+
+2. Define state maxstate and make it empty initially.
+
+3. Generate random array random array1.
+
+4. Intitialize the current state as intial state (defined above).
+
+5. Take successively numbers r from random array1 and call successor(current, r).
+
+6. We run a loop 5000 times
+• Chose a random number choose between 0 and 1
+• If choose ¡ wp, then a random number between 0 to (no of coal blocks 1) r is generated and
+successor(current, r) is called.
+• Else, greedily generate successor - successor(current).
+• Copy the successor into current copystate(current, neighbour)
+
+7. If revenue(current) ¿ maxvalue, then copystate(maxstate, current) and maxvalue = revenue(current).
+
+8. If time¡(wallclocktime*59) seconds then goto step 4.
+For one hill climb, we have chosen the first successor greedily based on revenue to guarantee correct answer
+for problems which have only one bid as the solution. This answer would be generated in the first iteration
+of the first hill climb only giving correct solution even if less time is given.
+
+We have made random restart until the given (wall clock time * 59) seconds.
